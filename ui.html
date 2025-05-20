@@ -277,11 +277,11 @@
   <div class="input-parameter">
     <div class="color-input-group">
       <svg width="24" height="24" fill="none" viewBox="0 0 24 24" style="position: absolute; left: 4px; top: 8px;"><path fill="var(--figma-color-text)" fill-rule="evenodd" d="M6 6.5a.5.5 0 0 1 .5-.5h11a.5.5 0 0 1 0 1h-11a.5.5 0 0 1-.5-.5M7 10v1h10v-1zm-.25-1a.75.75 0 0 0-.75.75v1.5c0 .414.336.75.75.75h10.5a.75.75 0 0 0 .75-.75v-1.5a.75.75 0 0 0-.75-.75zM7 17v-2h10v2zm-1-2.25a.75.75 0 0 1 .75-.75h10.5a.75.75 0 0 1 .75.75v2.5a.75.75 0 0 1-.75.75H6.75a.75.75 0 0 1-.75-.75z" clip-rule="evenodd"></path></svg>
-      <input type="number" id="strokeWidth" value="2" min="1" step="1">
+      <input type="number" id="strokeWidth" value="8" min="1" step="1">
     </div>
     <div class="color-input-group">
-      <input type="color" id="strokeColor" value="#000000">
-      <input type="text" class="color-input" id="colorInput" value="#000000" placeholder="Enter stroke color">
+      <input type="color" id="strokeColor" value="#0d99ff">
+      <input type="text" class="color-input" id="colorInput" value="#0d99ff" placeholder="Enter stroke color">
     </div>
   </div>
 
@@ -526,6 +526,133 @@
 
     // Initialize height
     updateHeight();
+
+    // Get elements for dynamic SVG update
+    const strokeWidthInput = document.getElementById('strokeWidth');
+    const strokeColorInput = document.getElementById('strokeColor');
+    const colorHexInput = document.getElementById('colorInput');
+    const svgPath = document.querySelector('.title-curve svg path');
+
+    // --- Animation Code Start ---
+
+    // Helper function to parse hex color to RGB
+    function hexToRgb(hex) {
+      const result = /^#?([a-f\\d]{2})([a-f\\d]{2})([a-f\\d]{2})$/i.exec(hex);
+      return result ? {
+        r: parseInt(result[1], 16),
+        g: parseInt(result[2], 16),
+        b: parseInt(result[3], 16)
+      } : null;
+    }
+
+    // Helper function to format RGB to hex color
+    function rgbToHex(r, g, b) {
+      r = Math.round(Math.max(0, Math.min(255, r)));
+      g = Math.round(Math.max(0, Math.min(255, g)));
+      b = Math.round(Math.max(0, Math.min(255, b)));
+      return "#" + ((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1).padStart(6, '0');
+    }
+
+    // Animation state variables for width
+    let currentStrokeWidth = parseFloat(strokeWidthInput.value) || 1;
+    let targetStrokeWidth = currentStrokeWidth;
+    let velocityStrokeWidth = 0;
+
+    // State variables for color (direct update, no animation for color itself)
+    // currentColorRgb and targetColorRgb can be simplified if color is always read from input or set directly.
+    // Let's ensure initial color is read for direct setting.
+    // let currentColorRgb = hexToRgb(strokeColorInput.value) || { r: 0, g: 0, b: 0 };
+    // let targetColorRgb = { ...currentColorRgb };
+
+    // Spring parameters for width (for bouncy effect)
+    const springParamsWidth = { stiffness: 200, damping: 12, mass: 1 };
+
+    let animationFrameId = null;
+    let lastTimestamp = 0;
+
+    function animate() {
+      const timestamp = performance.now();
+      const deltaTime = (lastTimestamp && timestamp > lastTimestamp) ? (timestamp - lastTimestamp) / 1000 : 0.016; // seconds
+      lastTimestamp = timestamp;
+
+      let isAnimatingWidth = false;
+
+      // Animate strokeWidth
+      if (Math.abs(currentStrokeWidth - targetStrokeWidth) > 0.01 || Math.abs(velocityStrokeWidth) > 0.01) {
+        const forceWidth = -springParamsWidth.stiffness * (currentStrokeWidth - targetStrokeWidth) - springParamsWidth.damping * velocityStrokeWidth;
+        const accelerationWidth = forceWidth / springParamsWidth.mass;
+        velocityStrokeWidth += accelerationWidth * deltaTime;
+        currentStrokeWidth += velocityStrokeWidth * deltaTime;
+        isAnimatingWidth = true;
+      } else {
+        currentStrokeWidth = targetStrokeWidth;
+        velocityStrokeWidth = 0;
+      }
+
+      // Apply width to SVG
+      if (svgPath) {
+        svgPath.setAttribute('stroke-width', Math.max(0.1, currentStrokeWidth).toFixed(2));
+      }
+
+      if (isAnimatingWidth) {
+        animationFrameId = requestAnimationFrame(animate);
+      } else {
+        // Animation for width ended
+        cancelAnimationFrame(animationFrameId);
+        animationFrameId = null;
+        lastTimestamp = 0; // Reset for next animation start
+      }
+    }
+
+    function startAnimationIfNeeded() {
+      if (!animationFrameId) {
+        lastTimestamp = performance.now(); // Reset timestamp before starting new animation sequence
+        animationFrameId = requestAnimationFrame(animate);
+      }
+    }
+
+    // Initial setup
+    if (svgPath) {
+      // Set initial width (state is already set from input value)
+      svgPath.setAttribute('stroke-width', currentStrokeWidth.toFixed(2));
+      // Set initial color (direct from input value)
+      svgPath.setAttribute('stroke', strokeColorInput.value);
+    }
+    
+    // Event Listeners
+    strokeWidthInput.addEventListener('input', () => {
+      targetStrokeWidth = parseFloat(strokeWidthInput.value) || 1;
+      startAnimationIfNeeded();
+    });
+
+    function handleColorChange(newColorHex) {
+      if (svgPath) {
+        svgPath.setAttribute('stroke', newColorHex); // Direct color update
+
+        // Trigger width bounce effect if width is relatively stable
+        const isStable = Math.abs(currentStrokeWidth - targetStrokeWidth) < 0.5 && Math.abs(velocityStrokeWidth) < 0.5;
+        if (isStable) {
+          velocityStrokeWidth += 100; // Add an impulse to the width velocity (makes it expand)
+        }
+        startAnimationIfNeeded(); // Ensure animation loop runs for the bounce
+      }
+    }
+
+    strokeColorInput.addEventListener('input', () => {
+      const newColor = strokeColorInput.value;
+      colorHexInput.value = newColor;
+      handleColorChange(newColor);
+    });
+
+    colorHexInput.addEventListener('input', () => {
+      if (/^#[0-9A-Fa-f]{6}$/.test(colorHexInput.value)) {
+        const newColor = colorHexInput.value;
+        strokeColorInput.value = newColor;
+        handleColorChange(newColor);
+      }
+    });
+    
+    // --- Animation Code End ---
 
     // Create stroke button click handler
     document.getElementById('create').onclick = () => {
