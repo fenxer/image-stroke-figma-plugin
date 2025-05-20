@@ -1,0 +1,12 @@
+{
+  "name": "Image Stroke",
+  "id": "1457662942651611491",
+  "api": "1.0.0",
+  "main": "dist/code.js",
+  "ui": "ui.html",
+  "documentAccess": "dynamic-page",
+  "editorType": ["figma"],
+  "networkAccess": {
+    "allowedDomains": ["none"]
+  }
+}

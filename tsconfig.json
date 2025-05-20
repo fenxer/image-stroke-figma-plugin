@@ -1,0 +1,32 @@
+{
+  "compilerOptions": {
+    "target": "es6",
+    "lib": ["es6", "dom"],
+    "strict": true,
+    "typeRoots": [
+      "./node_modules/@types",
+      "./node_modules/@figma"
+    ],
+    "outDir": "./dist",
+    "moduleResolution": "node",
+    "allowSyntheticDefaultImports": true,
+    "esModuleInterop": true,
+    "jsx": "react",
+    "allowJs": true,
+    "baseUrl": ".",
+    "paths": {
+      "@figma/plugin-typings": ["node_modules/@figma/plugin-typings"]
+    },
+    "types": ["@figma/plugin-typings"],
+    "skipLibCheck": true
+  },
+  "include": [
+    "src/**/*.ts", 
+    "src/**/*.tsx", 
+    "src/**/*.d.ts", 
+    "*.d.ts", 
+    "*.js",
+    "*.ts",
+    "algorithms/**/*.ts"
+  ]
+}
