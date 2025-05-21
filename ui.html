@@ -153,7 +153,7 @@
     }
     .status {
       position: fixed;
-      top: 37%;
+      top: 40%;
       left: 50%;
       transform: translateX(-50%);
       right: 0;
@@ -327,6 +327,27 @@
     .credit-content-box p:last-child {
       margin-bottom: 0;
     }
+
+    /* Language Switcher Styles */
+    .language {
+      cursor: default; /* Overall container not clickable directly */
+    }
+    .lang-option {
+      cursor: pointer;
+      padding: 2px 4px;
+      border-radius: 4px;
+      transition: background-color 0.2s ease;
+    }
+    .lang-option:hover {
+      background-color: var(--figma-color-bg-hover);
+    }
+    .lang-option.active {
+      color: var(--figma-color-bg-brand);
+      font-weight: 500;
+    }
+    .lang-option.active:hover {
+      background-color: var(--figma-color-bg-hover);
+    }
   </style>
 </head>
 <body>
@@ -350,7 +371,7 @@
     </svg>
   </div>
     
-  <div class="status">处理中...</div>
+  <div class="status" data-translate-key="statusProcessing">处理中...</div>
     
   <div class="input-parameter">
     <div class="color-input-group">
@@ -371,36 +392,38 @@
 
       <!-- Labels next, linked by 'for' attribute -->
       <label class="algorithm-option" for="algo-contour">
-        <span>适合单图像</span>
+        <span data-translate-key="singleImageLabel">适合单图像</span>
       </label>
       <label class="algorithm-option" for="algo-distance">
-        <span>适合多图像</span>
+        <span data-translate-key="multipleImagesLabel">适合多图像</span>
       </label>
     </div>
   </div>
 
-  <button id="create">创建描边</button>
+  <button id="create" data-translate-key="createStrokeButton">创建描边</button>
 
   <div style="display: flex; justify-content: space-between; align-items: center;">
-    <div class="language">中文 / EN</div>
+    <div class="language">
+      <span id="lang-cn" class="lang-option">中文</span> / <span id="lang-en" class="lang-option">EN</span>
+    </div>
     <div class="credits">
-      <a href="#" id="show-credit-link">Credits</a>  
+      <a href="#" id="show-credit-link" data-translate-key="creditsLink">Credits</a>  
     </div>
   </div>
 </div>
 
 <div id="credit-overlay">
   <div class="credit-content-box">
-    <h2>Credits</h2>
+    <h2 data-translate-key="creditsModalTitle">Credits</h2>
     <p style="width: fit-content; display: flex; align-items: center; gap: 8px; padding: 6px 12px 6px 8px; border: 1px solid var(--figma-color-border); border-radius: 8px; background-color: var(--figma-color-bg-secondary); font-size: 12px; color: var(--figma-color-text);">
       <svg width="16" height="16" viewBox="0 0 16 16" fill="var(--figma-color-icon)">
         <path d="M8.00016 16C8.00016 14.8933 7.78674 13.8533 7.35991 12.88C6.94682 11.9067 6.38 11.06 5.66007 10.34C4.94014 9.62 4.09335 9.05334 3.12001 8.64001C2.14667 8.21334 1.10677 8.00002 0 8.00002C1.10677 8.00002 2.14667 7.79335 3.12001 7.37999C4.09335 6.95335 4.94014 6.38 5.66007 5.66002C6.38 4.94 6.94682 4.09334 7.35991 3.12C7.78674 2.14667 8.00016 1.10667 8.00016 0C8.00016 1.10667 8.2067 2.14667 8.6201 3.12C9.04662 4.09334 9.62 4.94 10.3399 5.66002C11.0602 6.38 11.9067 6.95335 12.88 7.37999C13.8533 7.79335 14.8935 8.00002 16 8.00002C14.8935 8.00002 13.8533 8.21334 12.88 8.64001C11.9067 9.05334 11.0602 9.62 10.3399 10.34C9.62 11.06 9.04662 11.9067 8.6201 12.88C8.2067 13.8533 8.00016 14.8933 8.00016 16Z"/>
       </svg>
-      Coding with Gemini
+      <span data-translate-key="codingWithGemini">Coding with Gemini</span>
     </p>
-    <p>Made by <a href="https://x.com/haxfenx" target="_blank">@fenx</a><br/>在我的 <a href="https://www.figma.com/@fenx" target="_blank">Figma 主页</a>可以查看更多插件和资源</p>
-    <p>算法参考了 <a href="https://github.com/liajoy/image-stroke" target="_blank">liajoy/image-stroke</a></p>
-    <p>特别感谢 <a href="https://steamcommunity.com/id/R_Masamune/" target="_blank">@R_Masamune</a></p>
+    <p data-translate-key="madeByFenx">Made by <a href="https://x.com/haxfenx" target="_blank">@fenx</a><br/>在我的 <a href="https://www.figma.com/@fenx" target="_blank">Figma 主页</a>可以查看更多插件和资源</p>
+    <p data-translate-key="algorithmReference">算法参考了 <a href="https://github.com/liajoy/image-stroke" target="_blank">liajoy/image-stroke</a></p>
+    <p data-translate-key="specialThanks">特别感谢 <a href="https://steamcommunity.com/id/R_Masamune/" target="_blank">@R_Masamune</a></p>
   </div>
 </div>
 
@@ -801,6 +824,124 @@
       //   }
       // });
     }
+
+    // --- Language Switcher ---
+    const langCn = document.getElementById('lang-cn');
+    const langEn = document.getElementById('lang-en');
+    let currentLanguage = 'cn'; // Default language
+
+    const translations = {
+      cn: {
+        singleImageLabel: "适合单图像",
+        multipleImagesLabel: "适合多图像",
+        createStrokeButton: "创建描边",
+        statusProcessing: "处理中...",
+        creditsLink: "Credits", // "鸣谢" or "Credits" - user had "Credits"
+        creditsModalTitle: "Credits", // "鸣谢" or "Credits"
+        codingWithGemini: "Coding with Gemini", // This is English
+        madeByFenx: "Made by <a href=\'https://x.com/haxfenx\' target=\'_blank\'>@fenx</a><br/>在我的 <a href=\'https://www.figma.com/@fenx\' target=\'_blank\'>Figma 主页</a>可以查看更多插件和资源",
+        algorithmReference: "算法参考了 <a href=\'https://github.com/liajoy/image-stroke\' target=\'_blank\'>liajoy/image-stroke</a>",
+        specialThanks: "特别感谢 <a href=\'https://steamcommunity.com/id/R_Masamune/\' target=\'_blank\'>@R_Masamune</a>"
+      },
+      en: {
+        singleImageLabel: "For Single Image",
+        multipleImagesLabel: "For Multiple Images",
+        createStrokeButton: "Create Stroke",
+        statusProcessing: "Processing...",
+        creditsLink: "Credits",
+        creditsModalTitle: "Credits",
+        codingWithGemini: "Coding with Gemini",
+        madeByFenx: "Made by <a href=\'https://x.com/haxfenx\' target=\'_blank\'>@fenx</a><br/>Check my <a href=\'https://www.figma.com/@fenx\' target=\'_blank\'>Figma profile</a> for more plugins and resources",
+        algorithmReference: "Algorithm referenced from <a href=\'https://github.com/liajoy/image-stroke\' target=\'_blank\'>liajoy/image-stroke</a>",
+        specialThanks: "Special thanks to <a href=\'https://steamcommunity.com/id/R_Masamune/\' target=\'_blank\'>@R_Masamune</a>"
+      }
+    };
+
+    function updateUIText(lang) {
+      currentLanguage = lang;
+      document.querySelectorAll('[data-translate-key]').forEach(element => {
+        const key = element.getAttribute('data-translate-key');
+        if (translations[lang] && translations[lang][key]) {
+          element.innerHTML = translations[lang][key];
+        }
+      });
+
+      // Update active class for language switcher
+      if (lang === 'cn') {
+        langCn.classList.add('active');
+        langEn.classList.remove('active');
+      } else {
+        langEn.classList.add('active');
+        langCn.classList.remove('active');
+      }
+      
+      // Potentially update plugin height if content changes
+      updateHeight();
+    }
+
+    if (langCn && langEn) {
+      langCn.addEventListener('click', () => {
+        if (currentLanguage !== 'cn') {
+          updateUIText('cn');
+        }
+      });
+      langEn.addEventListener('click', () => {
+        if (currentLanguage !== 'en') {
+          updateUIText('en');
+        }
+      });
+    }
+
+    // Initial UI text setup
+    updateUIText(currentLanguage); 
+
+    // Modify the onmessage for status to use translations
+    const originalOnMessage = window.onmessage;
+    window.onmessage = async (event) => {
+      if (originalOnMessage) {
+        await originalOnMessage(event); // Call previous onmessage handler
+      }
+      const msg = event.data.pluginMessage;
+      if (msg && msg.type === 'show-status') {
+        const statusEl = document.querySelector('.status');
+        if (statusEl) { // Check if element exists
+            statusEl.textContent = translations[currentLanguage].statusProcessing;
+            // classList.add('visible') is likely handled by originalOnMessage or should be here too
+        }
+      }
+      // Note: If the original onmessage already set textContent for status,
+      // this might override it. Ensure the logic is correct.
+      // The original code for 'show-status' was just:
+      // document.querySelector('.status').classList.add('visible');
+      // It didn't set text content, so my data-translate-key on .status div and initial set should be fine.
+      // However, it's better to ensure the text is set correctly when status becomes visible.
+      // Let's refine the 'show-status' handling slightly in the new onmessage section.
+    };
+    
+    // Refined window.onmessage
+    // Store the original onmessage if it exists, to not break other functionalities.
+    const existingOnMessage = window.onmessage;
+    window.onmessage = async (event) => {
+        // Call existing onmessage logic first
+        if (typeof existingOnMessage === 'function') {
+            await existingOnMessage(event);
+        }
+
+        const msg = event.data.pluginMessage;
+        if (msg) { // Ensure msg object exists
+            if (msg.type === 'show-status') {
+                const statusEl = document.querySelector('.status');
+                if (statusEl) {
+                    statusEl.textContent = translations[currentLanguage].statusProcessing;
+                    // The original onmessage handler in the user's code just adds 'visible'.
+                    // It does not set text content itself. My addition of data-translate-key handles initial text.
+                    // So, setting textContent here when it's explicitly shown is correct.
+                    // The classList.add('visible') is handled by the original logic.
+                }
+            }
+            // other msg.type handling if needed
+        }
+    };
 
   </script>
 </body>

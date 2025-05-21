@@ -6,7 +6,7 @@ import { StrokeAlgorithm, StrokeParams, createStroke, Bounds } from '../algorith
 figma.showUI(__html__, { 
   width: 336, 
   themeColors: true,
-  height: 430
+  height: 434
 });
 
 // Define message types
