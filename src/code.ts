@@ -4,9 +4,9 @@ import { StrokeAlgorithm, StrokeParams, createStroke, Bounds } from '../algorith
 
 // Initialize plugin
 figma.showUI(__html__, { 
-  width: 400, 
+  width: 336, 
   themeColors: true,
-  height: 480
+  height: 430
 });
 
 // Define message types

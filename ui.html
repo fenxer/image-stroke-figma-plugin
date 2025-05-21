@@ -36,7 +36,8 @@
     .grid-bg {
       background-image: linear-gradient(to right, var(--figma-color-border) 1px, transparent 1px),
                     linear-gradient(to bottom, var(--figma-color-border) 1px, transparent 1px);
-      background-size: 32px 32px; /* 网格单元大小 25x25px */
+      background-size: 32px 32px; 
+      background-position: 16px 16px;
     }
 
     .input-parameter {
@@ -137,7 +138,7 @@
       font-family: Inter, sans-serif;
       font-size: 11px;
     }
-    .credits {
+    .language, .credits {
       font-size: 12px;
       color: var(--figma-color-text-secondary);
       margin-top: 0px;
@@ -152,14 +153,17 @@
     }
     .status {
       position: fixed;
-      top: 0;
-      left: 0;
+      top: 37%;
+      left: 50%;
+      transform: translateX(-50%);
       right: 0;
       background: var(--figma-color-bg-brand);
       color: var(--figma-color-text-onbrand);
-      padding: 8px;
+      padding: 4px 12px;
       text-align: center;
       font-size: 12px;
+      width: fit-content;
+      border-radius: 99px;
       display: none;
       z-index: 1000;
     }
@@ -249,6 +253,80 @@
     .algorithm-option input[type="radio"] {
       display: none;
     }
+
+    /* Credit Overlay Styles */
+    #credit-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgb(from var(--figma-color-bg) r g b / 0.6);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(4px);
+      z-index: 2000;
+      display: flex; /* Keep flex for alignment */
+      align-items: flex-end;
+      justify-content: flex-start;
+      opacity: 0;
+      visibility: hidden;
+      /* Transition for opacity (fade) and visibility (delayed to allow fade out) */
+      transition: opacity 0.3s ease-in-out, visibility 0s linear 0.3s;
+    }
+
+    #credit-overlay.visible {
+      opacity: 1;
+      visibility: visible;
+      /* Visibility transition is immediate when becoming visible */
+      transition: opacity 0.3s ease-in-out, visibility 0s linear 0s;
+    }
+
+    .credit-content-box {
+      background-color: transparent;
+      color: var(--figma-color-text);
+      padding: 28px;
+      padding-bottom: 32px; /* More space at bottom */
+      border-top-left-radius: 12px; /* Added for symmetry */
+      border-top-right-radius: 12px; /* Slightly larger radius */
+      transform: translateY(100%);
+      transition: transform 0.4s cubic-bezier(0.25, 0.8, 0.25, 1);
+      width: 100%; /* Make it full width */
+      box-sizing: border-box; /* Ensure padding doesn't add to width */
+      margin-left: 0;
+    }
+
+    #credit-overlay.visible .credit-content-box {
+      transform: translateY(0);
+    }
+
+    .credit-content-box h2 {
+      font-size: 20px;
+      font-weight: 600;
+      color: var(--figma-color-text);
+      margin-top: 0;
+      margin-bottom: 16px;
+    }
+
+    .credit-content-box p {
+      font-size: 12px;
+      line-height: 1.6;
+      color: var(--figma-color-text);
+      margin-bottom: 8px;
+    }
+
+    .credit-content-box a {
+      color: var(--figma-color-text);
+      text-decoration: underline;
+    }
+
+    .credit-content-box a:hover {
+      color: var(--figma-color-bg-brand);
+      text-decoration: wavy;
+    }
+
+    .credit-content-box p:last-child {
+      margin-bottom: 0;
+    }
   </style>
 </head>
 <body>
@@ -267,12 +345,12 @@
       <path d="M168.748 31.2347C164.477 31.2347 161.496 26.5184 161.496 19.8443C161.496 13.1257 164.477 8.40934 168.748 8.40934C172.886 8.40934 175.778 12.8142 176 19.0879C176 19.3548 175.822 19.5328 175.555 19.5328H166.479C166.479 25.9399 168.17 28.7875 170.706 28.7875C172.485 28.7875 173.731 27.3637 174.621 24.4271C174.71 24.2047 174.932 24.0712 175.155 24.1602C175.333 24.2047 175.466 24.4271 175.422 24.6496C174.354 28.6541 172.129 31.2347 168.748 31.2347ZM166.479 18.7764C169.326 18.7764 170.884 17.2191 170.884 13.6596C170.884 10.723 170.038 8.94327 168.882 8.94327C167.013 8.94327 166.479 13.1257 166.479 18.7764Z" />
     </svg>
   <div class="title-curve grid-bg">
-    <svg width="234" height="70" viewBox="0 0 234 70" fill="none" stroke="#fff" stroke-width="4" style="display: flex; align-items: center; justify-content: center;" xmlns="http://www.w3.org/2000/svg">
-      <path d="M0 53.5C34 53.5 43.4 10 77 10C119 10 126 62.8275 168.5 62.8275C202.5 62.8275 204 6.5 234 6.5"/>
+    <svg width="288" height="160" viewBox="0 0 288 160" fill="none" stroke="#fff" stroke-width="4" style="display: flex; align-items: center; justify-content: center;">
+      <path d="M32 90.8517C32 90.8517 61.3402 52.1464 96 47.445C147.99 40.3928 140.01 119.607 192 112.555C226.66 107.854 256 69.1483 256 69.1483"/>
     </svg>
   </div>
     
-  <div class="status">Processing...</div>
+  <div class="status">处理中...</div>
     
   <div class="input-parameter">
     <div class="color-input-group">
@@ -303,8 +381,26 @@
 
   <button id="create">创建描边</button>
 
-  <div class="credits">
-     <a href="#">Credit</a>
+  <div style="display: flex; justify-content: space-between; align-items: center;">
+    <div class="language">中文 / EN</div>
+    <div class="credits">
+      <a href="#" id="show-credit-link">Credits</a>  
+    </div>
+  </div>
+</div>
+
+<div id="credit-overlay">
+  <div class="credit-content-box">
+    <h2>Credits</h2>
+    <p style="width: fit-content; display: flex; align-items: center; gap: 8px; padding: 6px 12px 6px 8px; border: 1px solid var(--figma-color-border); border-radius: 8px; background-color: var(--figma-color-bg-secondary); font-size: 12px; color: var(--figma-color-text);">
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="var(--figma-color-icon)">
+        <path d="M8.00016 16C8.00016 14.8933 7.78674 13.8533 7.35991 12.88C6.94682 11.9067 6.38 11.06 5.66007 10.34C4.94014 9.62 4.09335 9.05334 3.12001 8.64001C2.14667 8.21334 1.10677 8.00002 0 8.00002C1.10677 8.00002 2.14667 7.79335 3.12001 7.37999C4.09335 6.95335 4.94014 6.38 5.66007 5.66002C6.38 4.94 6.94682 4.09334 7.35991 3.12C7.78674 2.14667 8.00016 1.10667 8.00016 0C8.00016 1.10667 8.2067 2.14667 8.6201 3.12C9.04662 4.09334 9.62 4.94 10.3399 5.66002C11.0602 6.38 11.9067 6.95335 12.88 7.37999C13.8533 7.79335 14.8935 8.00002 16 8.00002C14.8935 8.00002 13.8533 8.21334 12.88 8.64001C11.9067 9.05334 11.0602 9.62 10.3399 10.34C9.62 11.06 9.04662 11.9067 8.6201 12.88C8.2067 13.8533 8.00016 14.8933 8.00016 16Z"/>
+      </svg>
+      Coding with Gemini
+    </p>
+    <p>Made by <a href="https://x.com/haxfenx" target="_blank">@fenx</a><br/>在我的 <a href="https://www.figma.com/@fenx" target="_blank">Figma 主页</a>可以查看更多插件和资源</p>
+    <p>算法参考了 <a href="https://github.com/liajoy/image-stroke" target="_blank">liajoy/image-stroke</a></p>
+    <p>特别感谢 <a href="https://steamcommunity.com/id/R_Masamune/" target="_blank">@R_Masamune</a></p>
   </div>
 </div>
 
@@ -674,6 +770,38 @@
         }
       }, '*');
     };
+
+    // --- Credit Modal ---
+    const showCreditLink = document.getElementById('show-credit-link');
+    const creditOverlay = document.getElementById('credit-overlay');
+    const creditContentBox = document.querySelector('.credit-content-box');
+
+    if (showCreditLink && creditOverlay && creditContentBox) {
+      showCreditLink.addEventListener('click', (event) => {
+        event.preventDefault();
+        creditOverlay.classList.add('visible');
+        // Ensure transition triggers after display change
+        // requestAnimationFrame(() => {
+        //   creditContentBox.style.transform = 'translateY(0)';
+        // });
+      });
+
+      creditOverlay.addEventListener('click', (event) => {
+        // If the click is on the overlay itself (not the content box)
+        if (event.target === creditOverlay) {
+          // creditContentBox.style.transform = 'translateY(100%)';
+          creditOverlay.classList.remove('visible');
+        }
+      });
+
+      // Optional: Close when transition ends to reset display property if not using opacity for visibility
+      // creditContentBox.addEventListener('transitionend', () => {
+      //   if (!creditOverlay.classList.contains('visible')) {
+      //      // No need to set display: none; if opacity is used for hiding
+      //   }
+      // });
+    }
+
   </script>
 </body>
 </html> 
