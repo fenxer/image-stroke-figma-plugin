@@ -5,14 +5,13 @@
 </a>
 
 <br>
+<br>
 
 **Add Vector Strokes to Bitmaps Directly in Figma**
 - Focuses solely on generating the outline stroke of the image, without processing internal details；
 - Ready to use out of the box，everything is done within Figma；
 - Supports both Chinese and English language switching；
 - Compatible with Figma's light and dark theme modes；
-
-<br>
 
 ## Build
 
