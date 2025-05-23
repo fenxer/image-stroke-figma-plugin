@@ -1,27 +1,18 @@
 /**
- * Distance transform method for image stroke
- * Based on Meijster's algorithm for computing Euclidean distance
+ * Distance transform method for image stroke using Meijster's algorithm
  */
 
-/**
- * Compute Euclidean distance transform for binary image
- * @param binaryImage - Binary image (1 for non-transparent, 0 for transparent)
- * @param width - Image width
- * @param height - Image height
- * @returns Distance map array
- */
+// Compute Euclidean distance transform for binary image
 export function computeDistances(
   binaryImage: Uint8Array,
   width: number,
   height: number
 ): number[] {
-  // First phase
   const infinity = width + height;
   const b = binaryImage;
   const g = new Array(width * height);
   
   for (let x = 0; x < width; x++) {
-    // Base cases
     if (b[x]) {
       g[x] = 0;
     } else {
@@ -45,7 +36,6 @@ export function computeDistances(
     }
   }
 
-  // Helper functions for Euclidean distance
   function EDTFunc(x: number, i: number, gi: number): number {
     return (x - i) * (x - i) + gi * gi;
   }
@@ -54,7 +44,6 @@ export function computeDistances(
     return Math.floor((u * u - i * i + gu * gu - gi * gi) / (2 * (u - i)));
   }
 
-  // Second phase
   const dt = new Array(width * height);
   const s = new Array(width);
   const t = new Array(width);
@@ -96,14 +85,8 @@ export function computeDistances(
   return dt;
 }
 
-/**
- * Convert RGBA image data to binary image based on alpha threshold
- * @param imageData - RGBA image data
- * @param width - Image width
- * @param height - Image height
- * @param alphaThreshold - Threshold for determining transparency
- * @returns Binary image array (1 for non-transparent, 0 for transparent)
- */
+
+// Convert RGBA image data to binary image based on alpha threshold
 export function toBinaryImage(
   imageData: Uint8Array,
   width: number,
@@ -122,7 +105,6 @@ export function toBinaryImage(
   return binaryImage;
 }
 
-// 新增：检测图像边界点并提取边界信息
 interface Bounds {
   minX: number;
   minY: number;
@@ -130,14 +112,7 @@ interface Bounds {
   maxY: number;
 }
 
-/**
- * 检测图像的边界（非透明区域的边界框）
- * @param imageData - RGBA图像数据
- * @param width - 图像宽度
- * @param height - 图像高度
- * @param alphaThreshold - 透明度阈值
- * @returns 边界信息
- */
+// Detect image bounds (bounding box of non-transparent areas)
 export function detectImageBounds(
   imageData: Uint8Array,
   width: number,
@@ -163,7 +138,6 @@ export function detectImageBounds(
     }
   }
 
-  // 如果图像是完全透明的，返回全零边界
   if (!hasContent) {
     return { minX: 0, minY: 0, maxX: 0, maxY: 0 };
   }
@@ -171,15 +145,9 @@ export function detectImageBounds(
   return { minX, minY, maxX, maxY };
 }
 
-/**
- * Ramer-Douglas-Peucker algorithm for path simplification
- * @param points - Array of points {x, y}
- * @param epsilon - Distance threshold
- * @returns Simplified array of points
- */
+// Ramer-Douglas-Peucker algorithm for path simplification
 interface Point { x: number; y: number; }
 
-// function rdp(points: Point[], epsilon: number): Point[] { // Temporarily unused -> Restored
 export function rdp(points: Point[], epsilon: number): Point[] {
   if (points.length < 2) {
     return points;
@@ -213,7 +181,6 @@ function perpendicularDistance(point: Point, lineStart: Point, lineEnd: Point): 
   let dx = lineEnd.x - lineStart.x;
   let dy = lineEnd.y - lineStart.y;
 
-  // Normalize
   const mag = Math.sqrt(dx * dx + dy * dy);
   if (mag > 0) {
     dx /= mag;
@@ -232,9 +199,7 @@ function perpendicularDistance(point: Point, lineStart: Point, lineEnd: Point): 
 }
 
 /**
- * 将点集转换为SVG路径
- * @param points - 点集
- * @returns SVG路径字符串
+ * Convert points to SVG path string
  */
 export function pointsToPath(points: {x: number, y: number}[]): string {
   if (points.length === 0) return '';
@@ -245,82 +210,73 @@ export function pointsToPath(points: {x: number, y: number}[]): string {
     path += ` L ${points[i].x} ${points[i].y}`;
   }
   
-  // 闭合路径
   path += ' Z';
   
   return path;
 }
 
-// Adapted Moore's Neighbor Tracing (from contour.ts) to trace a given binary image
-// function traceAllContoursFromBinaryImage( // Temporarily unused -> Restored
+// Trace contours from binary image using Moore's neighbor tracing
 export function traceAllContoursFromBinaryImage(
-  binaryImage: Uint8Array, // The image to trace (e.g., silhouette from distance === 1)
+  binaryImage: Uint8Array,
   width: number,
   height: number
-): Point[][] { // Returns an array of paths (arrays of points)
+): Point[][] {
   const allContours: Point[][] = [];
-  const visitedImage = new Uint8Array(binaryImage); // Create a mutable copy to mark visited pixels
+  const visitedImage = new Uint8Array(binaryImage);
 
   for (let yScan = 0; yScan < height; yScan++) {
     for (let xScan = 0; xScan < width; xScan++) {
-      if (visitedImage[yScan * width + xScan] === 1) { // Found a starting point for a new contour
+      if (visitedImage[yScan * width + xScan] === 1) {
         const currentContour: Point[] = [];
         const startX = xScan;
         const startY = yScan;
         
-        //console.log(`[Distance/MultiTrace] Starting new contour trace at: (${startX}, ${startY})`);
-
         let currentX = startX;
         let currentY = startY;
-        visitedImage[currentY * width + currentX] = 2; // Mark as visited for this trace pass (prevents re-picking as start)
+        visitedImage[currentY * width + currentX] = 2;
         currentContour.push({ x: currentX, y: currentY });
 
         const mooreDx = [1, 1, 0, -1, -1, -1, 0, 1]; 
         const mooreDy = [0, 1, 1, 1, 0, -1, -1, -1]; 
         let bX = startX - 1; 
-        let bY = startY; // Initialize bX, bY (previous pixel) for the first step
+        let bY = startY;
         
         let iterations = 0;
-        const MAX_ITERATIONS_PER_CONTOUR = width * height * 2; // Increased safety margin
+        const MAX_ITERATIONS_PER_CONTOUR = width * height * 2;
 
         do {
           iterations++;
           let foundNext = false;
           let entryDirIndex = 0;
-          // Determine the direction from which we entered the current pixel (currentX, currentY)
-          // by finding which neighbor of currentX, currentY is bX, bY.
+          
           for (let k = 0; k < 8; k++) {
               if (currentX + mooreDx[k] === bX && currentY + mooreDy[k] === bY) {
-                  entryDirIndex = k; // This is the direction *towards* bX,bY from currentX,currentY
+                  entryDirIndex = k;
                   break;
               }
           }
           
-          for (let i = 0; i < 8; i++) { // Check all 8 directions, starting clockwise from where we came
+          for (let i = 0; i < 8; i++) {
             const checkDirIndex = (entryDirIndex + 1 + i) % 8; 
             const nextX = currentX + mooreDx[checkDirIndex];
             const nextY = currentY + mooreDy[checkDirIndex];
 
-            // Condition 1: Try to close the loop
             if (nextX === startX && nextY === startY && currentContour.length >= 2) {
-              // This is the original starting pixel, and we have enough points to form a loop.
-              bX = currentX; // Update bX, bY before moving
+              bX = currentX;
               bY = currentY;
-              currentX = nextX; // Move to startX, startY
+              currentX = nextX;
               currentY = nextY;
-              // Do NOT add startX, startY to currentContour again. SVG 'Z' closes it.
-              foundNext = true; // This will allow the while loop to terminate correctly.
+              foundNext = true;
               break; 
             }
 
-            // Condition 2: Move to a valid, unvisited boundary pixel
             if (nextX >= 0 && nextY >= 0 && nextX < width && nextY < height) {
-              if (visitedImage[nextY * width + nextX] === 1) { // Is a '1' (part of silhouette) and not yet part of *any* contour's trace path
+              if (visitedImage[nextY * width + nextX] === 1) {
                 bX = currentX;
                 bY = currentY;
                 currentX = nextX;
                 currentY = nextY;
-                visitedImage[currentY * width + currentX] = 2; // Mark as visited (part of the current contour path)
+                visitedImage[currentY * width + currentX] = 2;
                 currentContour.push({ x: currentX, y: currentY });
                 foundNext = true;
                 break; 
@@ -328,47 +284,21 @@ export function traceAllContoursFromBinaryImage(
             }
           }
 
-          if (!foundNext) {
-              // console.warn('[Distance/MultiTrace] Moore trace stuck on a contour.');
+          if (!foundNext || iterations >= MAX_ITERATIONS_PER_CONTOUR) {
               break; 
           }
-          if (iterations >= MAX_ITERATIONS_PER_CONTOUR) {
-              console.warn('[Distance/MultiTrace] Max iterations reached for a contour.');
-              break;
-          }
-        // Loop until currentX, currentY is back at startX, startY
-        // OR if !foundNext (stuck) OR max iterations reached.
         } while (currentX !== startX || currentY !== startY); 
         
-        // Check if the contour actually closed or if the loop broke for other reasons
-        if (currentX === startX && currentY === startY && currentContour.length > 0) {
-            // Successfully closed.
-            // console.log(`[Distance/MultiTrace] Contour closed. Start: (${startX},${startY}), Length: ${currentContour.length}`);
-        } else if (currentContour.length > 0) { // Only log if points were collected
-             console.log(`[Distance/MultiTrace] Contour (length ${currentContour.length}) did NOT close. Start: (${startX},${startY}), End: (${currentX},${currentY}), Iterations: ${iterations}`);
-        }
-        
-        // Add the traced contour if it has any points (actual filtering by MIN_POINTS_FOR_CONTOUR happens later)
         if (currentContour.length > 0) {
             allContours.push(currentContour);
-            // console.log(`[Distance/MultiTrace] Traced a contour with ${currentContour.length} points.`);
         }
       }
     }
   }
-  console.log(`[Distance/MultiTrace] Found ${allContours.length} distinct contours.`);
   return allContours;
 }
 
-/**
- * 创建基于距离变换的矢量描边路径
- * @param imageData - RGBA图像数据
- * @param width - 图像宽度
- * @param height - 图像高度
- * @param strokeWidth - 描边宽度
- * @param alphaThreshold - 透明度阈值
- * @returns 矢量路径数据和边界信息
- */
+// Create vector stroke path using distance transform
 export function createDistanceStrokePath(
   imageData: Uint8Array,
   width: number,
@@ -392,52 +322,35 @@ export function createDistanceStrokePath(
   const allFoundContours = traceAllContoursFromBinaryImage(silhouetteBinaryImage, width, height);
   
   if (allFoundContours.length === 0) {
-    // console.log('[Distance] No contours traced from silhouette, returning empty path.');
     return { pathData: '', bounds: overallBounds };
   }
 
   let combinedPathData = '';
-  const epsilon = 1; // Temporarily unused -> Restored
-
+  const epsilon = 1;
   const MIN_POINTS_FOR_CONTOUR = 10; 
 
   for (let i = 0; i < allFoundContours.length; i++) {
-    const contourPoints = allFoundContours[i]; // Changed to const
+    const contourPoints = allFoundContours[i];
 
     if (contourPoints.length < MIN_POINTS_FOR_CONTOUR) { 
-        // console.log(`[Distance] Contour ${i} has less than ${MIN_POINTS_FOR_CONTOUR} points (${contourPoints.length}), skipping.`);
         continue; 
     }
 
-    // Path simplification using RDP - Restored
     const simplifiedPoints = rdp(contourPoints, epsilon);
-    // console.log(`[Distance] Contour ${i} original ${contourPoints.length}, simplified to ${simplifiedPoints.length} points using RDP (epsilon: ${epsilon}).`);
     
     if (simplifiedPoints.length >= 2) { 
       combinedPathData += pointsToPath(simplifiedPoints) + ' '; 
-    } else {
-        // console.log(`[Distance] Contour ${i} after RDP has less than 2 points (${simplifiedPoints.length}), skipping path generation.`);
     }
   }
   
   if (combinedPathData.trim() === '') {
-    // console.log('[Distance] No valid path data generated after processing all contours.'); // 你可以按需取消注释
     return { pathData: '', bounds: overallBounds };
   }
   
   return { pathData: combinedPathData.trim(), bounds: overallBounds };
 }
 
-/**
- * Create stroke using distance transform method
- * @param imageData - RGBA image data
- * @param width - Image width
- * @param height - Image height
- * @param strokeWidth - Width of the stroke
- * @param strokeColor - RGBA color array [r, g, b, a]
- * @param alphaThreshold - Threshold for determining transparency
- * @returns New RGBA image data with stroke applied
- */
+// Create stroke using distance transform method
 export function createDistanceStroke(
   imageData: Uint8Array,
   width: number,
@@ -446,22 +359,15 @@ export function createDistanceStroke(
   strokeColor: [number, number, number, number],
   alphaThreshold: number
 ): Uint8Array {
-  // Create a copy of the input image data
   const resultData = new Uint8Array(imageData);
-  
-  // Convert to binary image
   const binaryImage = toBinaryImage(imageData, width, height, alphaThreshold);
-  
-  // Compute distance transform
   const distances = computeDistances(binaryImage, width, height);
   
-  // Apply stroke based on distance
   for (let y = 0; y < height; y++) {
     for (let x = 0; x < width; x++) {
       const idx = (y * width + x) * 4;
       const distance = distances[y * width + x];
       
-      // If distance is less than stroke width, apply stroke color
       if (distance > 0 && distance < strokeWidth) {
         resultData[idx] = strokeColor[0];
         resultData[idx + 1] = strokeColor[1];

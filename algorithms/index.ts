@@ -3,7 +3,6 @@
  */
 import { createContourStroke } from './contour';
 import { createDistanceStrokePath, detectImageBounds, pointsToPath, toBinaryImage, traceAllContoursFromBinaryImage, rdp } from './distance';
-// import { createRotateStroke } from './rotate'; // Not directly used in this file
 
 console.log('DEV_DEBUG: createDistanceStrokePath is', createDistanceStrokePath);
 
@@ -21,7 +20,6 @@ export interface StrokeParams {
   // alphaThreshold?: number; // Removed from public params
 }
 
-// 边界接口定义
 export interface Bounds {
   minX: number;
   minY: number;
@@ -71,7 +69,6 @@ export function createStroke(
   //   255 // Full opacity
   // ];
   
-  // 计算图像边界，用于确保矢量路径和边缘对齐
   // const bounds = detectImageBounds(imageData, width, height, internalAlphaThreshold); // Commented out as it's only used by contour and distance which might do their own specific bounding if needed differently
   
   let result: StrokeResult;
@@ -84,22 +81,18 @@ export function createStroke(
         height,
         internalAlphaThreshold // Use fixed internal threshold
       );
-      // Use the bounds detected by detectImageBounds for general positioning,
-      // the contour itself is already in image coordinates.
       const generalBounds = detectImageBounds(imageData, width, height, internalAlphaThreshold);
       result = {
         type: 'vector',
         data: { 
           pathData: contourResult.pathData,
-          bounds: generalBounds // Use generalBounds for overall positioning by src/code.ts
+          bounds: generalBounds 
         }
       };
       break;
     }
       
     case 'distance': {
-      // 对于距离变换算法，我们通过绘制边界路径来创建矢量路径
-      // 而不是生成图像数据
       const distanceStrokeData = createDistanceStrokePath(
         imageData,
         width,
@@ -108,7 +101,6 @@ export function createStroke(
         internalAlphaThreshold // Use fixed internal threshold
       );
       
-      // 确保有路径数据
       if (distanceStrokeData.pathData) {
         result = {
           type: 'vector',
@@ -118,27 +110,11 @@ export function createStroke(
           }
         };
       } else {
-        // 如果没有生成路径，返回错误
         throw new Error('Failed to generate vector path for distance transform');
       }
       break;
     }
-      
-    /* case 'rotate': { // Removed rotate case
-      // 对于旋转算法，我们将引导UI创建一个简化的路径
-      result = {
-        type: 'canvas',
-        data: {
-          width,
-          height,
-          strokeWidth,
-          strokeColor: rgbaColor,
-          bounds: bounds
-        }
-      };
-      break;
-    } */
-      
+
     default:
       throw new Error(`Unknown algorithm: ${algorithm}`);
   }
@@ -146,5 +122,4 @@ export function createStroke(
   return result;
 }
 
-// 导出边界检测函数，让其他文件也可以使用
 export { detectImageBounds, pointsToPath, toBinaryImage, traceAllContoursFromBinaryImage, rdp }; 

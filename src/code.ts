@@ -1,15 +1,11 @@
-// Image Stroke Plugin - Add vector strokes to bitmap images
-
 import { StrokeAlgorithm, StrokeParams, createStroke, Bounds } from '../algorithms';
 
-// Initialize plugin
 figma.showUI(__html__, { 
   width: 336, 
   themeColors: true,
   height: 434
 });
 
-// Define message types
 interface BaseMessage {
   type: string;
 }
@@ -86,35 +82,31 @@ async function initializePlugin() {
   figma.ui.postMessage({ type: 'theme-update', theme: background.color.r === 1 ? 'light' : 'dark' });
 }
 
-// Start initialization
 initializePlugin();
 
-// 更新 VectorData 的定义
 interface VectorData {
   pathData: string;
-  bounds?: Bounds; // 原始图像坐标系中的边界
+  bounds?: Bounds;
 }
 
 // Create vector path from stroke data
 async function createVectorPath(
   pathData: string,
-  strokeWidth: number, // 这是用户在 UI 中输入的描边粗细
+  strokeWidth: number,
   strokeColor: { r: number; g: number; b: number },
-  imageNode: SceneNode, // 这是用户选择的包含图像的节点 (RECTANGLE/FRAME)
-  contentBoundsInOriginalImage: Bounds | undefined, // 原始图像中内容的边界 {minX, minY, maxX, maxY}
-  originalImageWidth: number, // 原始图像的宽度
-  originalImageHeight: number // 原始图像的高度
+  imageNode: SceneNode,
+  contentBoundsInOriginalImage: Bounds | undefined,
+  originalImageWidth: number,
+  originalImageHeight: number
 ): Promise<VectorNode | null> { // Return null on failure
 
   if (!contentBoundsInOriginalImage) {
     figma.notify("Error: Content bounds are missing, cannot accurately create vector stroke.");
-    console.error("createVectorPath: contentBoundsInOriginalImage is undefined.");
     return null;
   }
 
   if (originalImageWidth <= 0 || originalImageHeight <= 0) {
     figma.notify("Error: Original image dimensions are invalid.");
-    console.error(`createVectorPath: Invalid originalImageWidth (${originalImageWidth}) or originalImageHeight (${originalImageHeight}).`);
     return null;
   }
 
@@ -125,11 +117,7 @@ async function createVectorPath(
     data: pathData
   }];
 
-  // After setting vectorPaths, vectorNode.x, y, width, height are automatically
-  // set to the extents of the pathData. Assuming pathData's coordinates
-  // are absolute to the original image, these will match contentBoundsInOriginalImage.
-  // For safety and clarity, let's use contentBoundsInOriginalImage directly for calculations.
-
+  // Use contentBoundsInOriginalImage for positioning and scaling calculations
   const contentOriginalX = contentBoundsInOriginalImage.minX;
   const contentOriginalY = contentBoundsInOriginalImage.minY;
   const contentOriginalWidth = contentBoundsInOriginalImage.maxX - contentBoundsInOriginalImage.minX;
@@ -138,8 +126,6 @@ async function createVectorPath(
   if (contentOriginalWidth <= 0 || contentOriginalHeight <= 0) {
     // This can happen if bounds detection yields an empty or invalid area.
     figma.notify("Warning: Detected content bounds are empty or invalid. Stroke might not be accurate.");
-    console.warn("createVectorPath: Calculated contentOriginalWidth or contentOriginalHeight is zero or negative.");
-     // Attempt to proceed but it might look weird, or could return null earlier.
   }
 
   const scaleX = imageNode.width / originalImageWidth;
@@ -155,9 +141,6 @@ async function createVectorPath(
   
   // Ensure target dimensions are not negative, which can happen with extreme scales or bad bounds.
   if (targetPathWidth <= 0 || targetPathHeight <= 0) {
-      console.warn(`createVectorPath: Calculated targetPathWidth (${targetPathWidth}) or targetPathHeight (${targetPathHeight}) is zero or negative. Aborting vector creation to prevent Figma errors.`);
-      // Clean up the partially created node if it was already added, though it's not at this point.
-      // vectorNode.remove(); // Not strictly necessary if not added to scene yet, but good for cleanup if we change order.
       figma.notify("Error: Stroke dimensions would be invalid. Cannot create stroke.");
       return null;
   }
@@ -183,7 +166,6 @@ async function createVectorPath(
     imageNode.parent.appendChild(vectorNode);
   } else {
     figma.currentPage.appendChild(vectorNode);
-    console.warn('Image node parent was not suitable, appended vector to currentPage.');
   }
 
   return vectorNode;
@@ -196,68 +178,54 @@ async function createRasterImage(
   height: number,
   node: SceneNode
 ): Promise<SceneNode> {
-  try {
-    // 将图像数据先转换为 UI 可以处理的格式
-    // 创建一个消息发送到 UI 进行处理
-    const processedData = await new Promise<ProcessedCanvasMessage>((resolve, reject) => {
-      const originalHandler = figma.ui.onmessage;
-      
-      const tempHandler = (responseMsg: PluginMessage) => {
-        if (responseMsg.type === 'error') {
-          figma.ui.onmessage = originalHandler;
-          reject(new Error((responseMsg as ErrorMessage).message));
-        } else if (responseMsg.type === 'processed-canvas') {
-          figma.ui.onmessage = originalHandler;
-          resolve(responseMsg as ProcessedCanvasMessage);
-        }
-      };
-      
-      figma.ui.onmessage = tempHandler;
-      
-      // 创建临时画布处理消息
-      figma.ui.postMessage({
-        type: 'convert-image-data',
-        imageData: Array.from(resultImageData),
-        width,
-        height
-      });
-    });
+  const processedData = await new Promise<ProcessedCanvasMessage>((resolve, reject) => {
+    const originalHandler = figma.ui.onmessage;
     
-    // 使用 Figma API 创建图像
-    const image = figma.createImage(processedData.bytes);
-    
-    // 创建一个矩形来容纳图像
-    const rect = figma.createRectangle();
-    rect.resize(width, height);
-    
-    // 设置图像为填充
-    rect.fills = [{
-      type: 'IMAGE',
-      scaleMode: 'FILL',
-      imageHash: image.hash
-    }];
-    
-    // 定位矩形
-    if (node.parent && 'appendChild' in node.parent) {
-      const nodeX = ('x' in node) ? node.x : 0;
-      const nodeY = ('y' in node) ? node.y : 0;
-      
-      rect.x = nodeX;
-      rect.y = nodeY;
-      
-      // 设置旋转（如果适用）
-      if ('rotation' in node) {
-        rect.rotation = node.rotation;
+    const tempHandler = (responseMsg: PluginMessage) => {
+      if (responseMsg.type === 'error') {
+        figma.ui.onmessage = originalHandler;
+        reject(new Error((responseMsg as ErrorMessage).message));
+      } else if (responseMsg.type === 'processed-canvas') {
+        figma.ui.onmessage = originalHandler;
+        resolve(responseMsg as ProcessedCanvasMessage);
       }
-      
-      node.parent.appendChild(rect);
+    };
+    
+    figma.ui.onmessage = tempHandler;
+    
+    figma.ui.postMessage({
+      type: 'convert-image-data',
+      imageData: Array.from(resultImageData),
+      width,
+      height
+    });
+  });
+  
+  const image = figma.createImage(processedData.bytes);
+  const rect = figma.createRectangle();
+  rect.resize(width, height);
+  
+  rect.fills = [{
+    type: 'IMAGE',
+    scaleMode: 'FILL',
+    imageHash: image.hash
+  }];
+  
+  if (node.parent && 'appendChild' in node.parent) {
+    const nodeX = ('x' in node) ? node.x : 0;
+    const nodeY = ('y' in node) ? node.y : 0;
+    
+    rect.x = nodeX;
+    rect.y = nodeY;
+    
+    if ('rotation' in node) {
+      rect.rotation = node.rotation;
     }
     
-    return rect;
-  } catch (error) {
-    console.error('Error creating raster image:', error);
-    throw error;
+    node.parent.appendChild(rect);
   }
+  
+  return rect;
 }
 
 // Main message handler
@@ -287,9 +255,7 @@ figma.ui.onmessage = async (msg: PluginMessage) => {
         return;
       }
 
-      // Find image fill
-      // To get the topmost image fill, we reverse the array before finding.
-      // Also ensure the fill is visible.
+      // Find topmost visible image fill
       const imageFill = [...fills].reverse().find(fill => fill.type === 'IMAGE' && fill.visible !== false);
       if (!imageFill || imageFill.type !== 'IMAGE' || !imageFill.imageHash) {
         figma.notify('Please select an object with a visible image fill');
@@ -298,17 +264,14 @@ figma.ui.onmessage = async (msg: PluginMessage) => {
         return;
       }
 
-      // Get image data
       const image = await figma.getImageByHash(imageFill.imageHash);
       if (!image) {
         figma.notify('Cannot get image data');
         return;
       }
 
-      // Get image bytes
       const bytes = await image.getBytesAsync();
       
-      // Decode image data
       const decodedData = await new Promise<DecodedImageMessage>((resolve, reject) => {
         const originalHandler = figma.ui.onmessage;
         
@@ -329,7 +292,6 @@ figma.ui.onmessage = async (msg: PluginMessage) => {
         });
       });
 
-      // Convert decoded data to Uint8Array
       const imageDataArray = new Uint8Array(decodedData.data);
       
       // Create stroke params
@@ -359,19 +321,16 @@ figma.ui.onmessage = async (msg: PluginMessage) => {
         
         const createdVectorNode = await createVectorPath(
           vectorData.pathData,
-          msg.strokeWidth, // User-defined stroke width from UI
+          msg.strokeWidth, 
           msg.strokeColor,
-          node, // This is the imageNode (the selected Figma layer)
-          vectorData.bounds, // Bounds of content in original image coordinates
-          decodedData.width, // originalImageWidth
-          decodedData.height // originalImageHeight
+          node, 
+          vectorData.bounds, 
+          decodedData.width, 
+          decodedData.height 
         );
 
         if (createdVectorNode) {
           figma.notify('Vector stroke created successfully!');
-        } else {
-          // Notification of failure already handled in createVectorPath or if pathData was missing
-          // figma.notify('Failed to create vector stroke node.'); // This might be redundant
         }
         
       } else if (strokeResult.type === 'raster') {
@@ -389,7 +348,6 @@ figma.ui.onmessage = async (msg: PluginMessage) => {
       }
 
     } catch (error: unknown) {
-      console.error('Error details:', error);
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       figma.notify(`Error creating stroke: ${errorMessage}`);
     } finally {

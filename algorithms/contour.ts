@@ -1,15 +1,12 @@
 /**
- * Contour method for image stroke
- * Based on tracing the outline of the image using marching squares algorithm
+ * Contour method for image stroke using marching squares algorithm
  */
 
-// Interface for point coordinates
 interface Point {
   x: number;
   y: number;
 }
 
-// Helper to detect image content bounds (similar to distance.ts)
 function detectActualImageBounds(
   imageData: Uint8Array,
   width: number,
@@ -38,27 +35,17 @@ function detectActualImageBounds(
   return { minX, minY, maxX, maxY, hasContent };
 }
 
-/**
- * Get contours from image data
- * @param imageData - RGBA image data
- * @param width - Image width
- * @param height - Image height
- * @param opacityThreshold - Threshold for determining transparent pixels
- * @returns Array of contour points
- */
+// Get contours from image data using Moore's Algorithm
 export function getContours(
   imageData: Uint8Array,
   width: number,
   height: number,
   opacityThreshold: number = 100
 ): Point[] {
-  console.log('[Contour] Starting getContours. Opacity Threshold:', opacityThreshold);
   const bounds = detectActualImageBounds(imageData, width, height, opacityThreshold);
   if (!bounds.hasContent) {
-    console.log('[Contour] No content found based on opacity threshold.');
     return [];
   }
-  console.log('[Contour] Detected bounds:', bounds);
 
   const contourPoints: Point[] = [];
   const isInside = (x: number, y: number): boolean => {
@@ -66,8 +53,6 @@ export function getContours(
       const idx = (y * width + x) * 4;
       return imageData[idx + 3] > opacityThreshold;
     }
-    // Consider points outside strict bounds as 'outside' for boundary detection,
-    // but ensure x,y are within image dimensions for direct imageData access.
     if (x >= 0 && y >= 0 && x < width && y < height) {
         const idx = (y * width + x) * 4;
         return imageData[idx + 3] > opacityThreshold;
@@ -77,10 +62,9 @@ export function getContours(
 
   let startX = -1;
   let startY = -1;
-  // Find first non-transparent pixel starting from detected bounds
   for (let y = bounds.minY; y <= bounds.maxY; y++) {
     for (let x = bounds.minX; x <= bounds.maxX; x++) {
-      if (isInside(x, y)) { // Check using isInside which respects opacityThreshold
+      if (isInside(x, y)) {
         startX = x;
         startY = y;
         break;
@@ -90,54 +74,42 @@ export function getContours(
   }
 
   if (startX === -1) {
-    console.log('[Contour] No starting pixel found within detected bounds.');
     return [];
   }
-  console.log(`[Contour] Starting contour trace at: (${startX}, ${startY})`);
 
   let currentX = startX;
   let currentY = startY;
   contourPoints.push({ x: currentX, y: currentY });
 
-  // Moore's Algorithm specific variables
-  // Order: E, SE, S, SW, W, NW, N, NE (clockwise)
+  // Moore's Algorithm: E, SE, S, SW, W, NW, N, NE (clockwise)
   const mooreDx = [1, 1, 0, -1, -1, -1, 0, 1]; 
   const mooreDy = [0, 1, 1, 1, 0, -1, -1, -1]; 
 
-  // bX, bY represent the pixel from which currentX, currentY was entered.
-  // For the start, assume we entered from a pixel to the West (background).
   let bX = startX - 1; 
   let bY = startY;
 
   let iterations = 0;
-  const MAX_ITERATIONS_CONTOUR = (bounds.maxX - bounds.minX + 1) * (bounds.maxY - bounds.minY + 1) * 4; // Increased safety factor
+  const MAX_ITERATIONS_CONTOUR = (bounds.maxX - bounds.minX + 1) * (bounds.maxY - bounds.minY + 1) * 4;
 
-  if (contourPoints.length > 0) { // Only proceed if starting point is valid
+  if (contourPoints.length > 0) {
     do {
       iterations++;
       let foundNext = false;
 
-      // Find the index of (bX,bY) relative to (currentX, currentY) in mooreDx/Dy neighborhood
-      // This is the direction from currentX,currentY *to* bX,bY.
-      let entryDirIndex = 0; // Default if bX,bY is not a direct neighbor (e.g. first step out of bounds)
+      let entryDirIndex = 0;
       for (let k = 0; k < 8; k++) {
           if (currentX + mooreDx[k] === bX && currentY + mooreDy[k] === bY) {
               entryDirIndex = k;
               break;
           }
       }
-      // If bX,bY was, for instance, (startX-1, startY) and current is (startX, startY),
-      // then mooreDx[k] = -1, mooreDy[k] = 0. This corresponds to West (index 4).
 
-      // Start scanning clockwise from the neighbor *after* bX,bY.
       for (let i = 0; i < 8; i++) {
         const checkDirIndex = (entryDirIndex + 1 + i) % 8; 
         const nextX = currentX + mooreDx[checkDirIndex];
         const nextY = currentY + mooreDy[checkDirIndex];
 
-        if (isInside(nextX, nextY)) { // Found next boundary pixel
-          // Update bX, bY for the *next* iteration: it's the pixel from which (nextX,nextY) was entered.
-          // This is the current (currentX, currentY) before the update.
+        if (isInside(nextX, nextY)) {
           bX = currentX;
           bY = currentY;
 
@@ -145,43 +117,27 @@ export function getContours(
           currentY = nextY;
           contourPoints.push({ x: currentX, y: currentY });
           foundNext = true;
-          break; // Found next point, break from inner for-loop
+          break;
         }
       }
 
-      if (!foundNext) {
-          console.warn('[Contour] Moore trace stuck. No next boundary pixel found after trying all 8 directions.');
-          break; // Cannot find next point
-      }
-      if (iterations >= MAX_ITERATIONS_CONTOUR) {
-          console.warn('[Contour] Max iterations reached in Moore trace.');
+      if (!foundNext || iterations >= MAX_ITERATIONS_CONTOUR) {
           break;
       }
-    // Stop if we're back at the start point AND we've added more than just the start point.
     } while ((currentX !== startX || currentY !== startY || contourPoints.length <= 1) && iterations < MAX_ITERATIONS_CONTOUR);
   }
   
-  if (iterations >= MAX_ITERATIONS_CONTOUR && (currentX !== startX || currentY !== startY)) {
-    console.warn('[Contour] Max iterations reached AND contour did not close properly.');
-  }
-  console.log(`[Contour] Found ${contourPoints.length} points.`);
-  if (contourPoints.length > 2) { // RDP needs at least 2 points, but practically more for a line
-    const simplifiedPoints = rdp(contourPoints, 1.5); // Epsilon = 1.5, can be adjusted
-    console.log(`[Contour] Simplified to ${simplifiedPoints.length} points using RDP.`);
+  if (contourPoints.length > 2) {
+    const simplifiedPoints = rdp(contourPoints, 1.5);
     return simplifiedPoints;
   }
   return contourPoints;
 }
 
-/**
- * Ramer-Douglas-Peucker algorithm for path simplification
- * @param points - Array of points {x, y}
- * @param epsilon - Distance threshold
- * @returns Simplified array of points
- */
+// Ramer-Douglas-Peucker algorithm for path simplification
 function rdp(points: Point[], epsilon: number): Point[] {
   if (points.length < 3) {
-    return points; // Cannot simplify less than 3 points
+    return points;
   }
 
   let dmax = 0;
@@ -208,18 +164,12 @@ function rdp(points: Point[], epsilon: number): Point[] {
   return results;
 }
 
-/**
- * Calculates the perpendicular distance from a point to a line segment.
- * @param point - The point {x, y}
- * @param lineStart - Start point of the line segment {x, y}
- * @param lineEnd - End point of the line segment {x, y}
- * @returns The perpendicular distance
- */
+// Calculate perpendicular distance from point to line segment
 function perpendicularDistance(point: Point, lineStart: Point, lineEnd: Point): number {
   const dx = lineEnd.x - lineStart.x;
   const dy = lineEnd.y - lineStart.y;
 
-  if (dx === 0 && dy === 0) { // lineStart and lineEnd are the same point
+  if (dx === 0 && dy === 0) {
     return Math.sqrt(Math.pow(point.x - lineStart.x, 2) + Math.pow(point.y - lineStart.y, 2));
   }
 
@@ -240,11 +190,7 @@ function perpendicularDistance(point: Point, lineStart: Point, lineEnd: Point): 
   return Math.sqrt(Math.pow(point.x - closestX, 2) + Math.pow(point.y - closestY, 2));
 }
 
-/**
- * Generate Figma vector path from contour points
- * @param points - Array of contour points
- * @returns Figma path data string
- */
+// Generate Figma vector path from contour points
 export function pointsToFigmaPath(points: Point[]): string {
   if (points.length < 2) return '';
 
@@ -254,7 +200,7 @@ export function pointsToFigmaPath(points: Point[]): string {
     path += ` L ${points[i].x} ${points[i].y}`;
   }
   
-  // Close the path if the first and last points are close enough
+  // Close path if endpoints are close or path is complex
   const firstPoint = points[0];
   const lastPoint = points[points.length - 1];
   const distance = Math.sqrt(
@@ -269,14 +215,7 @@ export function pointsToFigmaPath(points: Point[]): string {
   return path;
 }
 
-/**
- * Create stroke using contour method
- * @param imageData - RGBA image data
- * @param width - Image width
- * @param height - Image height 
- * @param opacityThreshold - Threshold for opacity detection
- * @returns Array of contour points and Figma path data
- */
+// Create stroke using contour method
 export function createContourStroke(
   imageData: Uint8Array,
   width: number,

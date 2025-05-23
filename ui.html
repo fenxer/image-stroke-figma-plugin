@@ -188,7 +188,7 @@
       height: 1px;
       width: 1px;
       overflow: hidden;
-      clip: rect(1px, 1px, 1px, 1px); /* IE6, IE7 */
+      clip: rect(1px, 1px, 1px, 1px); 
       clip: rect(1px, 1px, 1px, 1px);
       white-space: nowrap;
     }
@@ -221,13 +221,13 @@
         transition: inherit; 
         z-index: 1; 
         position: relative; 
-        color: var(--figma-color-text-onselected-tertiary); /* Default/Unselected text color */
+        color: var(--figma-color-text-onselected-tertiary);
     }
 
     /* Correctly style the span of the label associated with the checked radio */
     .algorithm-options input#algo-contour:checked ~ label[for="algo-contour"] span,
     .algorithm-options input#algo-distance:checked ~ label[for="algo-distance"] span {
-        color: var(--figma-color-text); /* Selected text color */
+        color: var(--figma-color-text);
     }
 
     .algorithm-option:last-of-type::after {
@@ -254,7 +254,6 @@
       display: none;
     }
 
-    /* Credit Overlay Styles */
     #credit-overlay {
       position: fixed;
       top: 0;
@@ -270,14 +269,12 @@
       justify-content: flex-start;
       opacity: 0;
       visibility: hidden;
-      /* Transition for opacity (fade) and visibility (delayed to allow fade out) */
       transition: opacity 0.3s ease-in-out, visibility 0s linear 0.3s;
     }
 
     #credit-overlay.visible {
       opacity: 1;
       visibility: visible;
-      /* Visibility transition is immediate when becoming visible */
       transition: opacity 0.3s ease-in-out, visibility 0s linear 0s;
     }
 
@@ -285,13 +282,13 @@
       background-color: transparent;
       color: var(--figma-color-text);
       padding: 28px;
-      padding-bottom: 32px; /* More space at bottom */
-      border-top-left-radius: 12px; /* Added for symmetry */
-      border-top-right-radius: 12px; /* Slightly larger radius */
+      padding-bottom: 32px; 
+      border-top-left-radius: 12px;
+      border-top-right-radius: 12px;
       transform: translateY(100%);
       transition: transform 0.4s cubic-bezier(0.25, 0.8, 0.25, 1);
-      width: 100%; /* Make it full width */
-      box-sizing: border-box; /* Ensure padding doesn't add to width */
+      width: 100%;
+      box-sizing: border-box;
       margin-left: 0;
     }
 
@@ -386,11 +383,8 @@
 
   <div class="input-algorithm">
     <div class="algorithm-options">
-      <!-- Radio inputs first, visually hidden by CSS later -->
       <input type="radio" name="algorithm" value="contour" id="algo-contour" checked>
       <input type="radio" name="algorithm" value="distance" id="algo-distance">
-
-      <!-- Labels next, linked by 'for' attribute -->
       <label class="algorithm-option" for="algo-contour">
         <span data-translate-key="singleImageLabel">适合单图像</span>
       </label>
@@ -421,16 +415,13 @@
       </svg>
       <span data-translate-key="codingWithGemini">Coding with Gemini</span>
     </p>
-    <p data-translate-key="madeByFenx">Made by <a href="https://x.com/haxfenx" target="_blank">@fenx</a><br/>在我的 <a href="https://www.figma.com/@fenx" target="_blank">Figma 主页</a>可以查看更多插件和资源</p>
-    <p data-translate-key="algorithmReference">算法参考了 <a href="https://github.com/liajoy/image-stroke" target="_blank">liajoy/image-stroke</a></p>
-    <p data-translate-key="specialThanks">特别感谢 <a href="https://steamcommunity.com/id/R_Masamune/" target="_blank">@R_Masamune</a></p>
+    <p data-translate-key="madeByFenx">Made by <a href='https://x.com/haxfenx' target='_blank'>@fenx</a><br/>在我的 <a href='https://www.figma.com/@fenx' target='_blank'>Figma 主页</a>可以查看更多插件和资源</p>
+    <p data-translate-key="algorithmReference">算法参考了 <a href='https://github.com/liajoy/image-stroke' target='_blank'>liajoy/image-stroke</a></p>
+    <p data-translate-key="specialThanks">特别感谢 <a href='https://steamcommunity.com/id/R_Masamune/' target='_blank'>@R_Masamune</a></p>
   </div>
 </div>
 
   <script>
-    // Encoding an image is also done by sticking pixels in an
-    // HTML canvas and by asking the canvas to serialize it into
-    // an actual PNG file via canvas.toBlob().
     async function encode(canvas, ctx, imageData) {
       ctx.putImageData(imageData, 0, 0);
       return await new Promise((resolve, reject) => {
@@ -443,8 +434,6 @@
       });
     }
 
-    // Decoding an image can be done by sticking it in an HTML
-    // canvas, as we can read individual pixels off the canvas.
     async function decode(canvas, ctx, bytes) {
       try {
       const url = URL.createObjectURL(new Blob([bytes]));
@@ -455,35 +444,19 @@
         img.src = url;
       });
         
-        // 确保画布大小与图像匹配
       canvas.width = image.width;
       canvas.height = image.height;
-        
-        // 清除画布并绘制图像
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
       ctx.drawImage(image, 0, 0);
-        
-        // 获取像素数据
       const imageData = ctx.getImageData(0, 0, image.width, image.height);
-        
-        // 清理 URL
       URL.revokeObjectURL(url);
-        
       return imageData;
       } catch (error) {
-        console.error('Error decoding image:', error);
+        parent.postMessage({ pluginMessage: { type: 'error', message: 'Failed to decode image in UI' } }, '*');
         throw error;
       }
     }
 
-    /**
-     * 检测图像的边界（非透明区域的边界框）
-     * @param imageData - 图像数据
-     * @param width - 图像宽度
-     * @param height - 图像高度
-     * @param alphaThreshold - 透明度阈值
-     * @returns 边界信息 {minX, minY, maxX, maxY}
-     */
     function detectImageBounds(imageData, width, height, alphaThreshold = 5) {
       let minX = width;
       let minY = height;
@@ -491,7 +464,6 @@
       let maxY = 0;
       let hasContent = false;
 
-      // 遍历所有像素，查找非透明区域的边界
       for (let y = 0; y < height; y++) {
         for (let x = 0; x < width; x++) {
           const idx = (y * width + x) * 4;
@@ -512,7 +484,6 @@
       return { minX, minY, maxX, maxY };
     }
 
-    // Handle messages from the plugin
     window.onmessage = async (event) => {
       const msg = event.data.pluginMessage;
       
@@ -520,11 +491,8 @@
         try {
           const canvas = document.createElement('canvas');
           const ctx = canvas.getContext('2d');
-          
-          // Decode the image
           const imageData = await decode(canvas, ctx, msg.bytes);
           
-          // Send back the decoded data
           parent.postMessage({
             pluginMessage: {
               type: 'decoded-image',
@@ -534,7 +502,6 @@
             }
           }, '*');
         } catch (error) {
-          console.error('Error decoding image:', error);
           parent.postMessage({
             pluginMessage: {
               type: 'error',
@@ -544,7 +511,6 @@
         }
       } else if (msg.type === 'convert-image-data') {
         try {
-          // 创建画布
           const canvas = document.createElement('canvas');
           canvas.width = msg.width;
           canvas.height = msg.height;
@@ -554,17 +520,14 @@
             throw new Error('Failed to get canvas context');
           }
           
-          // 创建 ImageData 对象
           const imgData = new ImageData(
             new Uint8ClampedArray(msg.imageData),
             msg.width,
             msg.height
           );
           
-          // 绘制到画布
           ctx.putImageData(imgData, 0, 0);
           
-          // 将画布转换为 PNG 格式
           const pngBytes = await new Promise((resolve, reject) => {
             canvas.toBlob((blob) => {
               if (!blob) {
@@ -585,7 +548,6 @@
             }, 'image/png');
           });
           
-          // 发送处理后的数据
           parent.postMessage({
             pluginMessage: {
               type: 'processed-canvas',
@@ -593,11 +555,10 @@
             }
           }, '*');
         } catch (error) {
-          console.error('Error converting image data:', error);
           parent.postMessage({
             pluginMessage: {
               type: 'error',
-              message: 'Failed to convert image data: ' + error.message
+              message: 'Failed to convert image data: ' + (error instanceof Error ? error.message : String(error))
             }
           }, '*');
         }
@@ -612,26 +573,19 @@
       document.getElementById('colorInput').value = this.value;
     };
 
-    // Add color input interaction
     document.getElementById('colorInput').oninput = function() {
       let value = this.value;
-      // Ensure it starts with #
       if (!value.startsWith('#')) {
         value = '#' + value;
         this.value = value;
       }
-      // Validate if it's a valid color value
       if (/^#[0-9A-Fa-f]{6}$/.test(value)) {
         document.getElementById('strokeColor').value = value;
       }
     };
 
-    // Update height function
     function updateHeight() {
-      // Force browser to recalculate layout
       document.body.style.minHeight = '0px';
-      
-      // Use requestAnimationFrame to ensure we calculate height on next frame
       requestAnimationFrame(() => {
         const height = Math.max(
           document.documentElement.offsetHeight,
@@ -643,20 +597,15 @@
       });
     }
 
-    // Initialize height
     updateHeight();
 
-    // Get elements for dynamic SVG update
     const strokeWidthInput = document.getElementById('strokeWidth');
     const strokeColorInput = document.getElementById('strokeColor');
     const colorHexInput = document.getElementById('colorInput');
     const svgPath = document.querySelector('.title-curve svg path');
 
-    // --- Animation Code Start ---
-
-    // Helper function to parse hex color to RGB
     function hexToRgb(hex) {
-      const result = /^#?([a-f\\d]{2})([a-f\\d]{2})([a-f\\d]{2})$/i.exec(hex);
+      const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
       return result ? {
         r: parseInt(result[1], 16),
         g: parseInt(result[2], 16),
@@ -664,7 +613,6 @@
       } : null;
     }
 
-    // Helper function to format RGB to hex color
     function rgbToHex(r, g, b) {
       r = Math.round(Math.max(0, Math.min(255, r)));
       g = Math.round(Math.max(0, Math.min(255, g)));
@@ -672,18 +620,10 @@
       return "#" + ((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1).padStart(6, '0');
     }
 
-    // Animation state variables for width
     let currentStrokeWidth = parseFloat(strokeWidthInput.value) || 1;
     let targetStrokeWidth = currentStrokeWidth;
     let velocityStrokeWidth = 0;
 
-    // State variables for color (direct update, no animation for color itself)
-    // currentColorRgb and targetColorRgb can be simplified if color is always read from input or set directly.
-    // Let's ensure initial color is read for direct setting.
-    // let currentColorRgb = hexToRgb(strokeColorInput.value) || { r: 0, g: 0, b: 0 };
-    // let targetColorRgb = { ...currentColorRgb };
-
-    // Spring parameters for width (for bouncy effect)
     const springParamsWidth = { stiffness: 200, damping: 12, mass: 1 };
 
     let animationFrameId = null;
@@ -691,12 +631,11 @@
 
     function animate() {
       const timestamp = performance.now();
-      const deltaTime = (lastTimestamp && timestamp > lastTimestamp) ? (timestamp - lastTimestamp) / 1000 : 0.016; // seconds
+      const deltaTime = (lastTimestamp && timestamp > lastTimestamp) ? (timestamp - lastTimestamp) / 1000 : 0.016;
       lastTimestamp = timestamp;
 
       let isAnimatingWidth = false;
 
-      // Animate strokeWidth
       if (Math.abs(currentStrokeWidth - targetStrokeWidth) > 0.01 || Math.abs(velocityStrokeWidth) > 0.01) {
         const forceWidth = -springParamsWidth.stiffness * (currentStrokeWidth - targetStrokeWidth) - springParamsWidth.damping * velocityStrokeWidth;
         const accelerationWidth = forceWidth / springParamsWidth.mass;
@@ -708,7 +647,6 @@
         velocityStrokeWidth = 0;
       }
 
-      // Apply width to SVG
       if (svgPath) {
         svgPath.setAttribute('stroke-width', Math.max(0.1, currentStrokeWidth).toFixed(2));
       }
@@ -716,29 +654,24 @@
       if (isAnimatingWidth) {
         animationFrameId = requestAnimationFrame(animate);
       } else {
-        // Animation for width ended
         cancelAnimationFrame(animationFrameId);
         animationFrameId = null;
-        lastTimestamp = 0; // Reset for next animation start
+        lastTimestamp = 0;
       }
     }
 
     function startAnimationIfNeeded() {
       if (!animationFrameId) {
-        lastTimestamp = performance.now(); // Reset timestamp before starting new animation sequence
+        lastTimestamp = performance.now();
         animationFrameId = requestAnimationFrame(animate);
       }
     }
 
-    // Initial setup
     if (svgPath) {
-      // Set initial width (state is already set from input value)
       svgPath.setAttribute('stroke-width', currentStrokeWidth.toFixed(2));
-      // Set initial color (direct from input value)
       svgPath.setAttribute('stroke', strokeColorInput.value);
     }
     
-    // Event Listeners
     strokeWidthInput.addEventListener('input', () => {
       targetStrokeWidth = parseFloat(strokeWidthInput.value) || 1;
       startAnimationIfNeeded();
@@ -746,14 +679,12 @@
 
     function handleColorChange(newColorHex) {
       if (svgPath) {
-        svgPath.setAttribute('stroke', newColorHex); // Direct color update
-
-        // Trigger width bounce effect if width is relatively stable
+        svgPath.setAttribute('stroke', newColorHex);
         const isStable = Math.abs(currentStrokeWidth - targetStrokeWidth) < 0.5 && Math.abs(velocityStrokeWidth) < 0.5;
         if (isStable) {
-          velocityStrokeWidth += 100; // Add an impulse to the width velocity (makes it expand)
+          velocityStrokeWidth += 100;
         }
-        startAnimationIfNeeded(); // Ensure animation loop runs for the bounce
+        startAnimationIfNeeded();
       }
     }
 
@@ -771,15 +702,11 @@
       }
     });
     
-    // --- Animation Code End ---
-
-    // Create stroke button click handler
     document.getElementById('create').onclick = () => {
       const strokeWidth = parseFloat(document.getElementById('strokeWidth').value);
       const colorHex = document.getElementById('strokeColor').value;
       const algorithm = document.querySelector('input[name="algorithm"]:checked').value;
       
-      // Convert hex to RGB
       const r = parseInt(colorHex.substr(1,2), 16) / 255;
       const g = parseInt(colorHex.substr(3,2), 16) / 255;
       const b = parseInt(colorHex.substr(5,2), 16) / 255;
@@ -794,7 +721,6 @@
       }, '*');
     };
 
-    // --- Credit Modal ---
     const showCreditLink = document.getElementById('show-credit-link');
     const creditOverlay = document.getElementById('credit-overlay');
     const creditContentBox = document.querySelector('.credit-content-box');
@@ -803,32 +729,18 @@
       showCreditLink.addEventListener('click', (event) => {
         event.preventDefault();
         creditOverlay.classList.add('visible');
-        // Ensure transition triggers after display change
-        // requestAnimationFrame(() => {
-        //   creditContentBox.style.transform = 'translateY(0)';
-        // });
       });
 
       creditOverlay.addEventListener('click', (event) => {
-        // If the click is on the overlay itself (not the content box)
         if (event.target === creditOverlay) {
-          // creditContentBox.style.transform = 'translateY(100%)';
           creditOverlay.classList.remove('visible');
         }
       });
-
-      // Optional: Close when transition ends to reset display property if not using opacity for visibility
-      // creditContentBox.addEventListener('transitionend', () => {
-      //   if (!creditOverlay.classList.contains('visible')) {
-      //      // No need to set display: none; if opacity is used for hiding
-      //   }
-      // });
     }
 
-    // --- Language Switcher ---
     const langCn = document.getElementById('lang-cn');
     const langEn = document.getElementById('lang-en');
-    let currentLanguage = 'cn'; // Default language
+    let currentLanguage = 'cn';
 
     const translations = {
       cn: {
@@ -836,12 +748,12 @@
         multipleImagesLabel: "适合多图像",
         createStrokeButton: "创建描边",
         statusProcessing: "处理中...",
-        creditsLink: "Credits", // "鸣谢" or "Credits" - user had "Credits"
-        creditsModalTitle: "Credits", // "鸣谢" or "Credits"
-        codingWithGemini: "Coding with Gemini", // This is English
-        madeByFenx: "Made by <a href=\'https://x.com/haxfenx\' target=\'_blank\'>@fenx</a><br/>在我的 <a href=\'https://www.figma.com/@fenx\' target=\'_blank\'>Figma 主页</a>可以查看更多插件和资源",
-        algorithmReference: "算法参考了 <a href=\'https://github.com/liajoy/image-stroke\' target=\'_blank\'>liajoy/image-stroke</a>",
-        specialThanks: "特别感谢 <a href=\'https://steamcommunity.com/id/R_Masamune/\' target=\'_blank\'>@R_Masamune</a>"
+        creditsLink: "Credits",
+        creditsModalTitle: "Credits",
+        codingWithGemini: "Coding with Gemini",
+        madeByFenx: "Made by <a href='https://x.com/haxfenx' target='_blank'>@fenx</a><br/>在我的 <a href='https://www.figma.com/@fenx' target='_blank'>Figma 主页</a>可以查看更多插件和资源",
+        algorithmReference: "算法参考了 <a href='https://github.com/liajoy/image-stroke' target='_blank'>liajoy/image-stroke</a>",
+        specialThanks: "特别感谢 <a href='https://steamcommunity.com/id/R_Masamune/' target='_blank'>@R_Masamune</a>"
       },
       en: {
         singleImageLabel: "For Single Image",
@@ -851,9 +763,9 @@
         creditsLink: "Credits",
         creditsModalTitle: "Credits",
         codingWithGemini: "Coding with Gemini",
-        madeByFenx: "Made by <a href=\'https://x.com/haxfenx\' target=\'_blank\'>@fenx</a><br/>Check my <a href=\'https://www.figma.com/@fenx\' target=\'_blank\'>Figma profile</a> for more plugins and resources",
-        algorithmReference: "Algorithm referenced from <a href=\'https://github.com/liajoy/image-stroke\' target=\'_blank\'>liajoy/image-stroke</a>",
-        specialThanks: "Special thanks to <a href=\'https://steamcommunity.com/id/R_Masamune/\' target=\'_blank\'>@R_Masamune</a>"
+        madeByFenx: "Made by <a href='https://x.com/haxfenx' target='_blank'>@fenx</a><br/>Check my <a href='https://www.figma.com/@fenx' target='_blank'>Figma profile</a> for more plugins and resources",
+        algorithmReference: "Algorithm referenced from <a href='https://github.com/liajoy/image-stroke' target='_blank'>liajoy/image-stroke</a>",
+        specialThanks: "Special thanks to <a href='https://steamcommunity.com/id/R_Masamune/' target='_blank'>@R_Masamune</a>"
       }
     };
 
@@ -866,7 +778,6 @@
         }
       });
 
-      // Update active class for language switcher
       if (lang === 'cn') {
         langCn.classList.add('active');
         langEn.classList.remove('active');
@@ -875,7 +786,6 @@
         langCn.classList.remove('active');
       }
       
-      // Potentially update plugin height if content changes
       updateHeight();
     }
 
@@ -892,54 +802,22 @@
       });
     }
 
-    // Initial UI text setup
     updateUIText(currentLanguage); 
 
-    // Modify the onmessage for status to use translations
-    const originalOnMessage = window.onmessage;
-    window.onmessage = async (event) => {
-      if (originalOnMessage) {
-        await originalOnMessage(event); // Call previous onmessage handler
-      }
-      const msg = event.data.pluginMessage;
-      if (msg && msg.type === 'show-status') {
-        const statusEl = document.querySelector('.status');
-        if (statusEl) { // Check if element exists
-            statusEl.textContent = translations[currentLanguage].statusProcessing;
-            // classList.add('visible') is likely handled by originalOnMessage or should be here too
-        }
-      }
-      // Note: If the original onmessage already set textContent for status,
-      // this might override it. Ensure the logic is correct.
-      // The original code for 'show-status' was just:
-      // document.querySelector('.status').classList.add('visible');
-      // It didn't set text content, so my data-translate-key on .status div and initial set should be fine.
-      // However, it's better to ensure the text is set correctly when status becomes visible.
-      // Let's refine the 'show-status' handling slightly in the new onmessage section.
-    };
-    
-    // Refined window.onmessage
-    // Store the original onmessage if it exists, to not break other functionalities.
     const existingOnMessage = window.onmessage;
     window.onmessage = async (event) => {
-        // Call existing onmessage logic first
         if (typeof existingOnMessage === 'function') {
             await existingOnMessage(event);
         }
 
         const msg = event.data.pluginMessage;
-        if (msg) { // Ensure msg object exists
+        if (msg) {
             if (msg.type === 'show-status') {
                 const statusEl = document.querySelector('.status');
                 if (statusEl) {
                     statusEl.textContent = translations[currentLanguage].statusProcessing;
-                    // The original onmessage handler in the user's code just adds 'visible'.
-                    // It does not set text content itself. My addition of data-translate-key handles initial text.
-                    // So, setting textContent here when it's explicitly shown is correct.
-                    // The classList.add('visible') is handled by the original logic.
                 }
             }
-            // other msg.type handling if needed
         }
     };
 
